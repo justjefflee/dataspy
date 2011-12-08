@@ -14,7 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Convenience property to set the GWT version -->
     <gwtVersion>2.2.0</gwtVersion>
-    <gxt.version>2.2.0</gxt.version>
+    <gxt.version>2.2.4</gxt.version>
     <!-- GWT needs at least java 1.5 -->
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
@@ -25,7 +25,10 @@
     <repository>
         <id>releases</id>
         <name>Releases</name>
+        <!--
         <url>https://oss.sonatype.org/content/repositories/releases</url>
+        -->
+        <url>https://oss.sonatype.org/content/repositories/comextjs-094</url>
     </repository>
   </repositories>
 
@@ -111,7 +114,7 @@
         <!-- Plugin configuration. There are many available options, see gwt-maven-plugin 
           documentation at codehaus.org -->
         <configuration>
-          <extraJvmArgs>-Xmx1024M -Xms1024M -XX:MaxPermSize=348M</extraJvmArgs>
+          <extraJvmArgs>-Xmx768M -Xms768M -XX:MaxPermSize=348M</extraJvmArgs>
           <runTarget>index.html</runTarget>
           <hostedWebapp>${webappDirectory}</hostedWebapp>
         </configuration>

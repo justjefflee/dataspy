@@ -23,6 +23,7 @@ public class DataSpy implements EntryPoint {
 		dataSpyEndpoint.setServiceEntryPoint(dataSpyModuleRelativeURL);
 		Registry.register(DATASPY_SERVICE, dataSpyService);
 		
+		/*
 		dataSpyService.init( new AsyncCallback<Void>() {
 			@Override
 			public void onFailure(Throwable caught) {
@@ -32,6 +33,7 @@ public class DataSpy implements EntryPoint {
 			public void onSuccess(Void v) {
 			}
 		});
+		*/
 		
 		Dispatcher dispatcher = Dispatcher.get();
 		dispatcher.addController(new AppController());
