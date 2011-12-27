@@ -10,6 +10,8 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 @RemoteServiceRelativePath("dataspy-service")
 public interface DataSpyService extends RemoteService {
 
+	public com.dataspy.shared.model.Table getTable (String tableName, String columnName, String columnType, String data);
+	
 	public Table getTable (String tableName);
 	
     public List<FileModel> getFolderChildren(FileModel fileModel);

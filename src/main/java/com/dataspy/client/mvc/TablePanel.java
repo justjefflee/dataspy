@@ -1,33 +1,56 @@
 package com.dataspy.client.mvc;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.dataspy.client.AppEvents;
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.dataspy.shared.model.TableColumn;
 import com.extjs.gxt.ui.client.event.BaseEvent;
+import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.GridEvent;
 import com.extjs.gxt.ui.client.event.Listener;
+import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.store.ListStore;
+import com.extjs.gxt.ui.client.store.Record;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.TabItem;
 import com.extjs.gxt.ui.client.widget.TabPanel;
+import com.extjs.gxt.ui.client.widget.Window;
+import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.TextArea;
 import com.extjs.gxt.ui.client.widget.grid.CellSelectionModel;
 import com.extjs.gxt.ui.client.widget.grid.CellSelectionModel.CellSelection;
 import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
 import com.extjs.gxt.ui.client.widget.grid.Grid;
+import com.extjs.gxt.ui.client.widget.grid.GridCellRenderer;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
+import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 
-public class TablePanel extends ContentPanel {
+public class TablePanel extends Window {
+   	private ListStore<RowData> store = new ListStore<RowData>();
 
 	public TablePanel (Table table) {
 		setLayout( new FitLayout() );
 		setHeading( table.getName() );
 		
+		ToolBar toolbar = new ToolBar();
+		Button clearButton = new Button( "Clear" );
+		clearButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				store.removeAll();
+			}
+		});
+		toolbar.add( clearButton );
+	    
+		setTopComponent( toolbar );
 		ContentPanel cp = new ContentPanel();
 		cp.setLayout( new FitLayout() );
 		cp.setHeaderVisible( false );
@@ -46,18 +69,38 @@ public class TablePanel extends ContentPanel {
 		tabPanel.add( tabItem );
 		
 		add( tabPanel );
-    	setSize( 500, 150 );
+    	setSize( 500, 250 );
+	}
+	
+	public void addData (List<RowData> data) {
+    	store.add( data );
 	}
 	
 	private Grid<RowData> createGrid (final Table table) {
-    	final ListStore<RowData> store = new ListStore<RowData>();
     	store.add( table.getData() );
     	
+		GridCellRenderer<RowData> renderer = new GridCellRenderer<RowData>() {
+			@Override
+			public Object render(RowData model, String property, com.extjs.gxt.ui.client.widget.grid.ColumnData config,
+					int rowIndex, int colIndex, ListStore<RowData> listStore, Grid<RowData> grid) {
+				RowData rowData = listStore.getAt( rowIndex );
+				TableColumn column = table.getColumns().get( colIndex );
+				String key = table.getName()+rowIndex+""+colIndex;
+               	//System.out.println( "check key: " + key );
+               	if (rowData.get( key ) == null)
+					config.style = "";
+				else
+					config.style = "background-color: #EDE275;";
+				return rowData.get( column.getName() );
+			}  
+		};  
+
 		final List<ColumnConfig> columns = new ArrayList<ColumnConfig>();
 		ColumnConfig colConfig;
 		
 		for (TableColumn column : table.getColumns()) {
 			colConfig = new ColumnConfig( column.getName(), column.getName(), 80);  
+			colConfig.setRenderer( renderer );
 			columns.add( colConfig );
 		}
 		
@@ -77,7 +120,28 @@ public class TablePanel extends ContentPanel {
                 CellSelection cs = sm.getSelectCell();
           		TableColumn column = table.getColumns().get( cs.cell );
            		RowData rowData = store.getAt( cs.row );
-                System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  rowData.get( column.getName() ) );
+           		String cellData = rowData.get( column.getName() );
+                System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  cellData );
+                if (column.getParentTable() != null) {
+                	String key = table.getName()+cs.row+""+cs.cell;
+                	//System.out.println( "add key: " + key );
+                	rowData.set( column.getName()+"clicked", "" );
+                	
+        			Record rec = store.getRecord( rowData );
+        			rec.beginEdit();
+        			rec.set( column.getName(), cellData );
+        			rec.set( key, "" );
+        			rec.endEdit();
+        			rec.commit(true);
+
+                	Map<String,String> data = new HashMap<String,String>();
+                	data.put( "tableName", column.getParentTable() );
+                	data.put( "columnName", column.getParentColumn() );
+                	data.put( "columnType", column.getParentType() );
+                	data.put( "data", cellData );
+                	System.out.println( "parent: " + column.getParentTable() + "." + column.getParentColumn() );
+           			Dispatcher.forwardEvent( AppEvents.OpenParentFKData, data );
+                }
             }
         });
 

@@ -48,3 +48,13 @@
 }
 
 
+.x-grid3-row td,
+.x-grid3-summary-row td,
+.x-grid3-cell-text,
+.x-grid3-hd-text,
+.x-grid3-hd,
+.x-grid3-row {
+    -moz-user-select: text !important;
+    -khtml-user-select:  text !important;
+}
+

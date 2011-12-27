@@ -4,6 +4,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import net.sourceforge.schemaspy.Config;
@@ -39,7 +42,7 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 
 	private static void initDatabase () {
 		MySchemaAnalyzer analyzer = new MySchemaAnalyzer();
-        String cmdLine = "-dp jtds-1.2.5.jar -i \"T_P.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
+        String cmdLine = "-dp jtds-1.2.5.jar -i \"T_.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
         try {
         	String[] argv = cmdLine.split( " " );
             Config config = new Config(argv);
@@ -57,19 +60,6 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
             		System.out.println( "      num of parents " + column.getParents().size() );
             		System.out.println( "      num of children " + column.getChildren().size() );
             	}
-            	/*
-            	PreparedStatement ps = database.getConnection().prepareStatement( "select count(*) from " + table.getName() );
-            	ResultSet rs = null;
-            	try {
-            		rs = ps.executeQuery();
-            		if (rs.next())
-            			System.out.println( "  row count: " + rs.getInt(1));
-            		rs.close();
-            		ps.close();
-            	} catch (Exception e) {
-            		e.printStackTrace();
-            	}
-            	*/
             }
             
         } catch (InvalidConfigurationException badConfig) {
@@ -86,29 +76,71 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
         }
 	}
 	
+	public com.dataspy.shared.model.Table getTable (String tableName, String columnName, String columnType, String data) {
+		Table t = findTable( tableName );
+		com.dataspy.shared.model.Table table = toTable( t );
+       	getData( table, columnName, columnType, data );
+		return table;
+	}
+	
 	public com.dataspy.shared.model.Table getTable (String tableName) {
+		Table t = findTable( tableName );
+		com.dataspy.shared.model.Table table = toTable( t );
+       	getData( table );
+		return table;
+	}
+	
+	private com.dataspy.shared.model.Table toTable (Table t) {
 		com.dataspy.shared.model.Table table = new com.dataspy.shared.model.Table();
+		table.setName( t.getName() );
+       	for (TableColumn column : t.getColumns()) {
+       		com.dataspy.shared.model.TableColumn tc = new com.dataspy.shared.model.TableColumn();
+       		tc.setName( column.getName() );
+       		tc.setType( column.getType() );
+      		tc.setLength( column.getLength()+"" );
+      		table.addTableColumn( tc );
+      		for (TableColumn p : column.getParents()) {
+      			//System.out.println( "parent: " + p );
+      			tc.setParentTable( p.getTable().getName() );
+      			tc.setParentColumn( p.getName() );
+      			tc.setParentType( p.getType() );
+      		}
+      		for (TableColumn p : column.getChildren()) {
+      			System.out.println( "children: " + p.getTable().getName() + "." + p.getName() );
+      		}
+      	}
+		return table;
+	}
+	
+	private Table findTable (String tableName) {
 		for (Table t : database.getTables()) {
 			if (t.getName().equals( tableName )) {
-				table.setName( t.getName() );
-            	for (TableColumn column : t.getColumns()) {
-            		com.dataspy.shared.model.TableColumn tc = new com.dataspy.shared.model.TableColumn();
-            		tc.setName( column.getName() );
-            		tc.setType( column.getType() );
-            		tc.setLength( column.getLength()+"" );
-            		table.addTableColumn( tc );
-            		for (TableColumn p : column.getParents()) {
-            			System.out.println( "parent: " + p );
-            		}
-            		for (TableColumn p : column.getChildren()) {
-            			System.out.println( "children: " + p );
-            		}
-            	}
-            	getData( table );
-				return table;
+				return t;
 			}
 		}
 		return null;
+	}
+	
+	private void getData (com.dataspy.shared.model.Table table, String columnName, String columnType, String data) {
+      	PreparedStatement ps = null;
+      	ResultSet rs = null;
+      	try {
+       		ps = database.getConnection().prepareStatement( "select * from " + table.getName() + " where " + columnName + " = ?" );
+       		ps.setObject( 1, data );
+       		rs = ps.executeQuery();
+       		ResultSetMetaData rsmd = rs.getMetaData();
+       		for (int i = 0; i < 10 && rs.next(); i++) {
+       			RowData rowData = new RowData();
+       			for (int j = 1; j <= rsmd.getColumnCount(); j++) {
+       				rowData.set( rsmd.getColumnName(j), rs.getString( j ) );
+       			}
+       			table.addRowData( rowData );
+       		}
+       		rs.close();
+       		ps.close();
+       	} catch (Exception e) {
+       		e.printStackTrace();
+       	}
 	}
 	
 	private void getData (com.dataspy.shared.model.Table table) {
@@ -135,6 +167,13 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
        	}
 	}
 	
+	public class TableComparable implements Comparator<Table>{
+	    @Override
+	    public int compare(Table o1, Table o2) {
+	    	return o1.getName().compareTo( o2.getName() );
+	    }
+	}
+
     public List<FileModel> getFolderChildren(FileModel fileModel) {
     	System.out.println( "getFolderChildren " + fileModel );
     	List<FileModel> result = new ArrayList<FileModel>();
@@ -145,7 +184,11 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
    			result.add( new FolderModel( "Tables", "/tables", "tables" ) );
    			
     	} else if ("/tables".equals(fileModel.getPath())) {
-            for (Table table : database.getTables()) {
+    		List<Table> tables = new ArrayList<Table>();
+    		tables.addAll( database.getTables() );
+    		Collections.sort( tables, new TableComparable() );
+    		
+            for (Table table : tables) {
             	result.add( new FileModel( table.getName(), "table", "table" ) );
             }
     	}

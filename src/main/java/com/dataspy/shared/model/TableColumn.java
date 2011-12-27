@@ -23,11 +23,23 @@ public class TableColumn extends BeanModel {
 		set( "length", length );
 	}
 	
-	public String getParent() {
-		return get( "parent" );
+	public String getParentTable() {
+		return get( "parentTable" );
 	}
-	public void setParent(String parent) {
-		set( "parent", parent );
+	public void setParentTable(String parentTable) {
+		set( "parentTable", parentTable );
+	}
+	public String getParentColumn() {
+		return get( "parentColumn" );
+	}
+	public void setParentColumn(String parentColumn) {
+		set( "parentColumn", parentColumn );
+	}
+	public String getParentType() {
+		return get( "parentType" );
+	}
+	public void setParentType(String parentType) {
+		set( "parentType", parentType );
 	}
 
 }
