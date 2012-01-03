@@ -1,11 +1,14 @@
 package com.dataspy.client.mvc;
 
+import java.util.List;
 import java.util.Map;
 
 import com.dataspy.client.AppEvents;
 import com.dataspy.client.DataSpy;
 import com.dataspy.client.DataSpyServiceAsync;
+import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
+import com.dataspy.shared.model.TableColumn;
 import com.extjs.gxt.ui.client.Registry;
 import com.extjs.gxt.ui.client.event.EventType;
 import com.extjs.gxt.ui.client.mvc.AppEvent;
@@ -26,25 +29,27 @@ public class AppController extends Controller {
 
 	public void handleEvent(AppEvent event) {
 		EventType type = event.getType();
+		
 		if (type == AppEvents.Init) {
 			onInit(event);
+			
 		} else if (type == AppEvents.Error) {
 			onError(event);
+			
 		} else if (type == AppEvents.OpenTable) {
 			openTable( (String) event.getData() );
+			
 		} else if (type == AppEvents.OpenParentFKData) {
-			Map<String,String> map = (Map<String,String>) event.getData();
-           	String tableName = map.get( "tableName" );
-           	String columnName = map.get( "columnName" );
-           	String columnType = map.get( "columnType" );
-           	String data = map.get( "data" );
-			openParentFK( tableName, columnName, columnType, data );
+			Map<String,Object> map = (Map<String,Object>) event.getData();
+			TableColumn parentColumn = (TableColumn) map.get( "parent" );
+           	String data = (String) map.get( "data" );
+			openParentFK( parentColumn, data );
 		}
 	}
 	
-	private void openParentFK (String tableName, String columnName, String columnType, String data) {
+	private void openParentFK (TableColumn parentColumn, String data) {
 		DataSpyServiceAsync dataSpyService = (DataSpyServiceAsync) Registry.get( DataSpy.DATASPY_SERVICE );
-		dataSpyService.getTable( tableName, columnName, columnType, data, new AsyncCallback<Table>() {
+		dataSpyService.getTable( parentColumn.getTable().getName(), parentColumn.getName(), parentColumn.getType(), data, new AsyncCallback<Table>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
@@ -56,16 +61,17 @@ public class AppController extends Controller {
 		});
 	}
 
-	private void openTable (String tableName) {
+	private void openTable (final String tableName) {
+		appView.openTable( Util.getTableMap().get( tableName ) );
 		DataSpyServiceAsync dataSpyService = (DataSpyServiceAsync) Registry.get( DataSpy.DATASPY_SERVICE );
-		dataSpyService.getTable( tableName, new AsyncCallback<Table>() {
+		dataSpyService.getSampleData( tableName, new AsyncCallback<List<RowData>>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
 			}
 			@Override
-			public void onSuccess(Table table) {
-				appView.openTable( table );
+			public void onSuccess(List<RowData> data) {
+				appView.addData( tableName, data );
 			}
 		});
 	}

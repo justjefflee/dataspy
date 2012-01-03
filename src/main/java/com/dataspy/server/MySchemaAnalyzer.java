@@ -3,8 +3,6 @@ package com.dataspy.server;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
@@ -12,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
 import net.sourceforge.schemaspy.Config;
 import net.sourceforge.schemaspy.MultipleSchemaAnalyzer;
@@ -138,41 +135,13 @@ class MySchemaAnalyzer extends SchemaAnalyzer {
 
     private Connection getConnection(Config config, String connectionURL,
                       String driverClass, String driverPath) throws FileNotFoundException, IOException {
-        List<URL> classpath = new ArrayList<URL>();
-        List<File> invalidClasspathEntries = new ArrayList<File>();
-        StringTokenizer tokenizer = new StringTokenizer(driverPath, File.pathSeparator);
-        while (tokenizer.hasMoreTokens()) {
-            File pathElement = new File(tokenizer.nextToken());
-            if (pathElement.exists())
-                classpath.add(pathElement.toURI().toURL());
-            else
-                invalidClasspathEntries.add(pathElement);
-        }
-
-        URLClassLoader loader = new URLClassLoader(classpath.toArray(new URL[classpath.size()]));
         Driver driver = null;
         try {
-            driver = (Driver)Class.forName(driverClass, true, loader).newInstance();
+            driver = (Driver)Class.forName( driverClass ).newInstance();
 
         } catch (Exception exc) {
             System.err.println(exc); // people don't want to see a stack trace...
-            System.err.println();
             System.err.print("Failed to load driver '" + driverClass + "'");
-            if (classpath.isEmpty())
-                System.err.println();
-            else
-                System.err.println("from: " + classpath);
-            if (!invalidClasspathEntries.isEmpty()) {
-                if (invalidClasspathEntries.size() == 1)
-                    System.err.print("This entry doesn't point to a valid file/directory: ");
-                else
-                    System.err.print("These entries don't point to valid files/directories: ");
-                System.err.println(invalidClasspathEntries);
-            }
-            System.err.println();
-            System.err.println("Use the -dp option to specify the location of the database");
-            System.err.println("drivers for your database (usually in a .jar or .zip/.Z).");
-            System.err.println();
             throw new ConnectionFailure(exc);
         }
 
@@ -201,7 +170,7 @@ class MySchemaAnalyzer extends SchemaAnalyzer {
             }
         } catch (UnsatisfiedLinkError badPath) {
             System.err.println();
-            System.err.println("Failed to load driver [" + driverClass + "] from classpath " + classpath);
+            System.err.println("Failed to load driver [" + driverClass + "] " );
             System.err.println();
             System.err.println("Make sure the reported library (.dll/.lib/.so) from the following line can be");
             System.err.println("found by your PATH (or LIB*PATH) environment variable");

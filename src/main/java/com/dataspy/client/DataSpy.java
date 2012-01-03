@@ -1,9 +1,13 @@
 package com.dataspy.client;
 
+import java.util.Map;
+
 import com.dataspy.client.mvc.AppController;
+import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.GXT;
 import com.extjs.gxt.ui.client.Registry;
 import com.extjs.gxt.ui.client.mvc.Dispatcher;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -11,6 +15,7 @@ import com.google.gwt.user.client.rpc.ServiceDefTarget;
 
 public class DataSpy implements EntryPoint {
 	public static final String DATASPY_SERVICE = "dataSpyService";
+	public static final String TABLE_MAP = "tableMap";
  
 	/**
 	 * This is the entry point method.
@@ -23,17 +28,20 @@ public class DataSpy implements EntryPoint {
 		dataSpyEndpoint.setServiceEntryPoint(dataSpyModuleRelativeURL);
 		Registry.register(DATASPY_SERVICE, dataSpyService);
 		
-		/*
-		dataSpyService.init( new AsyncCallback<Void>() {
+		final MessageBox box = MessageBox.wait("Progress", "Loading...", "Loading...");  
+
+		dataSpyService.getTableMap( new AsyncCallback<Map<String,Table>>() {
 			@Override
 			public void onFailure(Throwable caught) {
+				box.close();
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
 			}
 			@Override
-			public void onSuccess(Void v) {
+			public void onSuccess(Map<String,Table> tableMap) {
+				box.close();
+				Registry.register( TABLE_MAP, tableMap );
 			}
 		});
-		*/
 		
 		Dispatcher dispatcher = Dispatcher.get();
 		dispatcher.addController(new AppController());

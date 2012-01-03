@@ -1,6 +1,9 @@
 package com.dataspy.client.mvc;
 
+import java.util.List;
+
 import com.dataspy.client.AppEvents;
+import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.Style.LayoutRegion;
 import com.extjs.gxt.ui.client.mvc.AppEvent;
@@ -42,6 +45,10 @@ public class AppView extends View {
 		mainPanel = new MainPanel();
 		viewport.add( mainPanel, centerData);
 		RootPanel.get().add( viewport );
+	}
+	
+	public void addData (String tableName, List<RowData> data) {
+		mainPanel.addData( tableName, data );
 	}
 	
 	public void openTable (Table table) {

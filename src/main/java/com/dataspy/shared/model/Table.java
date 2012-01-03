@@ -5,7 +5,6 @@ import java.util.List;
 
 public class Table implements java.io.Serializable {
 	private List<TableColumn> columns = new ArrayList<TableColumn>();
-	private List<RowData> data = new ArrayList<RowData>();
 	private String name;
 	
 	public String getName() {
@@ -22,11 +21,5 @@ public class Table implements java.io.Serializable {
 	}
 	public void setColumns (List<TableColumn> columns) {
 		this.columns = columns;
-	}
-	public void addRowData (RowData rowData) {
-		data.add( rowData );
-	}
-	public List<RowData> getData () {
-		return data;
 	}
 }

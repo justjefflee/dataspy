@@ -48,7 +48,6 @@
       <groupId>com.extjs</groupId>
       <artifactId>gxt</artifactId>
       <version>${gxt.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.google.gwt</groupId>
@@ -68,7 +67,7 @@
       <groupId>com.google.gwt</groupId>
       <artifactId>gwt-dev</artifactId>
       <version>2.2.0</version>
-      <scope>compile</scope>
+      <scope>provided</scope>
     </dependency>  
 
     <dependency>
@@ -76,6 +75,11 @@
 	  <artifactId>jtds</artifactId>
 	  <version>1.2.4</version>
     </dependency>
+   	  <dependency>
+	  <groupId>mysql</groupId>
+	  <artifactId>mysql-connector-java</artifactId>
+	  <version>5.1.13</version>
+	</dependency>
     
     
   </dependencies>

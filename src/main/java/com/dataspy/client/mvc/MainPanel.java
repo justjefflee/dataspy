@@ -1,8 +1,10 @@
 package com.dataspy.client.mvc;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.event.MenuEvent;
@@ -24,6 +26,11 @@ public class MainPanel extends ContentPanel {
 		setContextMenu( createPanelContextMenu() );
     }
 
+	public void addData (String tableName, List<RowData> data) {
+		TablePanel tp = tablePanelMap.get( tableName );
+		tp.addData( data );
+	}
+	
 	public void openTable (Table table) {
 		try {
 			System.out.println( "MainPanel openTable: " + table.getName() );
@@ -46,9 +53,6 @@ public class MainPanel extends ContentPanel {
 				tablePanelMap.put( table.getName(), tp );
 	    		add( tp );
 	    		layout();
-	    		
-			} else {
-				tp.addData( table.getData() );
 			}
 			tp.show();
 	    
