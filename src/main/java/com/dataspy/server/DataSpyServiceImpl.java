@@ -76,8 +76,12 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
             	List<TableColumn> columns = table.getColumns();
             	for (TableColumn column : columns) {
             		System.out.println( "    " + column.getName() + ", " + column.getType() + ", " + column.getLength() );
-            		System.out.println( "      num of parents " + column.getParents().size() );
-            		System.out.println( "      num of children " + column.getChildren().size() );
+            		if (column.getParents().size() > 0) {
+            			System.out.println( "      num of parents " + column.getParents() );
+            		}
+            		if (column.getChildren().size() > 0) {
+            			System.out.println( "      num of children " + column.getChildren() );
+            		}
             	}
             }
             for (Table table : database.getTables()) {
@@ -88,6 +92,7 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
             		t.getColumns().get(i).setParents( parents );
             		for (TableColumn parentTableColumn : column.getParents()) {
             			parents.add( tableColumnMap.get( parentTableColumn.getTable().getName()+"."+parentTableColumn.getName() ));
+            			System.out.println( "add " + parentTableColumn.getTable().getName()+"."+parentTableColumn.getName() + " to " + t.getName() );
             		}
             		i++;
             	}
@@ -126,9 +131,10 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			ps = database.getConnection().prepareStatement(
-					"select * from " + table.getName() + " where " + columnName + " = ?");
-			ps.setObject(1, data);
+			String sql = "select * from " + table.getName() + " where " + columnName + " = ?";
+			System.out.println( "getData " + sql );
+			ps = database.getConnection().prepareStatement( sql );
+			ps.setObject( 1, data );
 			rs = ps.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			for (int i = 0; i < 10 && rs.next(); i++) {

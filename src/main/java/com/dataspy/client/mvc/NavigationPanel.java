@@ -1,13 +1,9 @@
 package com.dataspy.client.mvc;
 
 import com.dataspy.client.AppEvents;
-import com.dataspy.client.DataSpy;
-import com.dataspy.client.DataSpyServiceAsync;
-import com.dataspy.shared.model.FileModel;
 import com.dataspy.shared.model.Folder;
 import com.dataspy.shared.model.Table;
 import com.dataspy.shared.model.TableNode;
-import com.extjs.gxt.ui.client.Registry;
 import com.extjs.gxt.ui.client.data.ModelData;
 import com.extjs.gxt.ui.client.event.BaseEvent;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
@@ -23,7 +19,6 @@ import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.extjs.gxt.ui.client.widget.treepanel.TreePanel;
 
 public class NavigationPanel extends ContentPanel {
-	private DataSpyServiceAsync dataSpyService = (DataSpyServiceAsync) Registry.get(DataSpy.DATASPY_SERVICE);
     private TreeStore<ModelData> store;
 	private TreePanel tree;
 
