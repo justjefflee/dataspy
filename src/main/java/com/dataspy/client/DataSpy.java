@@ -7,7 +7,6 @@ import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.GXT;
 import com.extjs.gxt.ui.client.Registry;
 import com.extjs.gxt.ui.client.mvc.Dispatcher;
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -28,26 +27,23 @@ public class DataSpy implements EntryPoint {
 		dataSpyEndpoint.setServiceEntryPoint(dataSpyModuleRelativeURL);
 		Registry.register(DATASPY_SERVICE, dataSpyService);
 		
-		final MessageBox box = MessageBox.wait("Progress", "Loading...", "Loading...");  
-
+		System.out.println( "DataSpy: getting table map .." );
 		dataSpyService.getTableMap( new AsyncCallback<Map<String,Table>>() {
 			@Override
 			public void onFailure(Throwable caught) {
-				box.close();
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
 			}
 			@Override
 			public void onSuccess(Map<String,Table> tableMap) {
-				box.close();
 				Registry.register( TABLE_MAP, tableMap );
+				System.out.println( "DataSpy: got table map" );
+				Dispatcher dispatcher = Dispatcher.get();
+				dispatcher.addController(new AppController());
+				dispatcher.dispatch( AppEvents.Init );
+				GXT.hideLoadingPanel("loading");
 			}
 		});
 		
-		Dispatcher dispatcher = Dispatcher.get();
-		dispatcher.addController(new AppController());
-		dispatcher.dispatch( AppEvents.Init );
-
-		GXT.hideLoadingPanel("loading");
 	}
 }
 

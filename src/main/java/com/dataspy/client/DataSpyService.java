@@ -14,10 +14,10 @@ public interface DataSpyService extends RemoteService {
 
     public Map<String,Table> getTableMap ();
     	
-	public com.dataspy.shared.model.Table getTable (String tableName, String columnName, String columnType, String data);
-	
 	public List<RowData> getSampleData (String tableName);
 	
+	public List<RowData> getData(String tableName, String columnName, String columnType, String data);
+		
     public List<FileModel> getFolderChildren(FileModel fileModel);
 	
 }

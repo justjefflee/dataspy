@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import net.sourceforge.schemaspy.Config;
 import net.sourceforge.schemaspy.model.Database;
@@ -26,7 +27,7 @@ import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyService {
     private static Database database;
-    private static Map<String,com.dataspy.shared.model.Table> tableMap = new HashMap<String,com.dataspy.shared.model.Table>();
+    private static Map<String,com.dataspy.shared.model.Table> tableMap = new TreeMap<String,com.dataspy.shared.model.Table>();
     private static Map<String,com.dataspy.shared.model.TableColumn> tableColumnMap = new HashMap<String,com.dataspy.shared.model.TableColumn>();
     
 	static {
@@ -43,11 +44,10 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
         }
     }
 
-	private static void initDatabase () {
+	static void initDatabase () {
 		MySchemaAnalyzer analyzer = new MySchemaAnalyzer();
-        //String cmdLine = "-dp jtds-1.2.5.jar -i \"T_.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
-        //String cmdLine = "-dp jtds-1.2.5.jar -i \"t_.*\" -t mysql -host localhost -port 3306 -noschema -db newdemo -u legato -p legato -o \\output";
-        String cmdLine = "-i \"t_.*\" -t mysql -host localhost -port 3306 -noschema -db newdemo -u legato -p legato -o \\output";
+        String cmdLine = "-i \"T_.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
+        //String cmdLine = "-i \"t_.*\" -t mysql -host localhost -port 3306 -noschema -db newdemo -u legato -p legato -o \\output";
         try {
         	String[] argv = cmdLine.split( " " );
             Config config = new Config(argv);
@@ -120,9 +120,31 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
     	return tableMap;
     }
     
-	public com.dataspy.shared.model.Table getTable (String tableName, String columnName, String columnType, String data) {
-		com.dataspy.shared.model.Table table = tableMap.get( tableName );
-		return table;
+	public List<RowData> getData(String tableName, String columnName, String columnType, String data) {
+		com.dataspy.shared.model.Table table = tableMap.get(tableName);
+		List<RowData> result = new ArrayList<RowData>();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = database.getConnection().prepareStatement(
+					"select * from " + table.getName() + " where " + columnName + " = ?");
+			ps.setObject(1, data);
+			rs = ps.executeQuery();
+			ResultSetMetaData rsmd = rs.getMetaData();
+			for (int i = 0; i < 10 && rs.next(); i++) {
+				RowData rowData = new RowData();
+				for (int j = 1; j <= rsmd.getColumnCount(); j++) {
+					rowData.set(rsmd.getColumnName(j), rs.getString(j));
+				}
+				result.add(rowData);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try { rs.close(); } catch (Exception ex) {}
+			try { ps.close(); } catch (Exception ex) {}
+		}
+		return result;
 	}
 	
 	public List<RowData> getSampleData (String tableName) {

@@ -40,23 +40,29 @@ public class AppController extends Controller {
 			openTable( (String) event.getData() );
 			
 		} else if (type == AppEvents.OpenParentFKData) {
+			try {
 			Map<String,Object> map = (Map<String,Object>) event.getData();
 			TableColumn parentColumn = (TableColumn) map.get( "parent" );
            	String data = (String) map.get( "data" );
 			openParentFK( parentColumn, data );
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
-	private void openParentFK (TableColumn parentColumn, String data) {
+	private void openParentFK (final TableColumn parentColumn, String data) {
+		appView.openTable( parentColumn.getTable() );
+		
 		DataSpyServiceAsync dataSpyService = (DataSpyServiceAsync) Registry.get( DataSpy.DATASPY_SERVICE );
-		dataSpyService.getTable( parentColumn.getTable().getName(), parentColumn.getName(), parentColumn.getType(), data, new AsyncCallback<Table>() {
+		dataSpyService.getData( parentColumn.getTable().getName(), parentColumn.getName(), parentColumn.getType(), data, new AsyncCallback<List<RowData>>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
 			}
 			@Override
-			public void onSuccess(Table table) {
-				appView.openTable( table );
+			public void onSuccess(List<RowData> data) {
+				appView.addData( parentColumn.getTable().getName(), data );
 			}
 		});
 	}

@@ -6,6 +6,11 @@
 
 <web-app>
 
+  <listener>
+	<display-name>servlet listener</display-name>
+	<listener-class>com.dataspy.server.DataSpyServletContextListener</listener-class>
+  </listener>
+
   <servlet>
     <servlet-name>dataSpyService</servlet-name>
     <servlet-class>com.dataspy.server.DataSpyServiceImpl</servlet-class>

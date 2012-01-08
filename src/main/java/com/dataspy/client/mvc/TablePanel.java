@@ -9,7 +9,7 @@ import com.dataspy.client.AppEvents;
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.dataspy.shared.model.TableColumn;
-import com.extjs.gxt.ui.client.Style.Orientation;
+import com.extjs.gxt.ui.client.Style.LayoutRegion;
 import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.binding.FormBinding;
 import com.extjs.gxt.ui.client.event.BaseEvent;
@@ -17,11 +17,11 @@ import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.GridEvent;
 import com.extjs.gxt.ui.client.event.Listener;
-import com.extjs.gxt.ui.client.event.SelectionChangedEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.store.Record;
+import com.extjs.gxt.ui.client.util.Margins;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.TabItem;
 import com.extjs.gxt.ui.client.widget.TabPanel;
@@ -36,8 +36,9 @@ import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
 import com.extjs.gxt.ui.client.widget.grid.Grid;
 import com.extjs.gxt.ui.client.widget.grid.GridCellRenderer;
+import com.extjs.gxt.ui.client.widget.layout.BorderLayout;
+import com.extjs.gxt.ui.client.widget.layout.BorderLayoutData;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
-import com.extjs.gxt.ui.client.widget.layout.RowLayout;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 
 public class TablePanel extends Window {
@@ -62,16 +63,28 @@ public class TablePanel extends Window {
 		setTopComponent( toolbar );
 		ContentPanel cp = new ContentPanel();
 		//cp.setLayout( new FitLayout() );
-		cp.setLayout(new RowLayout(Orientation.HORIZONTAL)); 
+		BorderLayout layout = new BorderLayout();
+		cp.setLayout( layout );
 		cp.setHeaderVisible( false );
     	final Grid<RowData> grid = createGrid( table );
-    	cp.add( grid, new com.extjs.gxt.ui.client.widget.layout.RowData( .5, 1 ));
+    	
+		BorderLayoutData westData = new BorderLayoutData(LayoutRegion.WEST, 250);
+		westData.setSplit(true);
+		westData.setCollapsible(true);
+		westData.setMargins(new Margins(0, 2, 0, 0));
+		
+    	cp.add( grid, westData );
+		
 		//cp.setScrollMode( Scroll.AUTO );
 		
         FormPanel fp = createFormPanel( table );  
+        fp.setLabelWidth( 120 );
         formBinding = new FormBinding( fp, true );  
         formBinding.setStore( store );
-    	cp.add( fp, new com.extjs.gxt.ui.client.widget.layout.RowData( .5, 1 ));
+    	
+		BorderLayoutData centerData = new BorderLayoutData(LayoutRegion.CENTER);
+		centerData.setMargins(new Margins(0));
+    	cp.add( fp, centerData );
     	
 		TabPanel tabPanel = new TabPanel();
 		TabItem tabItem = new TabItem( "Result" );
@@ -85,7 +98,7 @@ public class TablePanel extends Window {
 		tabPanel.add( tabItem );
 		
 		add( tabPanel );
-    	setSize( 500, 250 );
+    	setSize( 700, 350 );
 	}
 	
 	public void addData (List<RowData> data) {
@@ -96,6 +109,7 @@ public class TablePanel extends Window {
 		FormPanel fp = new FormPanel();
 		fp.setHeaderVisible( false );
 		fp.setScrollMode( Scroll.AUTO );
+		fp.setWidth( 400 );
 		
 		for (TableColumn column : table.getColumns()) {
 			TextField<String> tf = new TextField<String>();
@@ -150,7 +164,7 @@ public class TablePanel extends Window {
           		TableColumn column = table.getColumns().get( cs.cell );
            		RowData rowData = store.getAt( cs.row );
            		String cellData = rowData.get( column.getName() );
-                System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  cellData );
+                System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  cellData + " parents: " + column.getParents().size() );
                 List<TableColumn> parents = column.getParents();
                 if (parents.size() > 0) {
                 	String key = table.getName()+cs.row+""+cs.cell;
@@ -170,7 +184,7 @@ public class TablePanel extends Window {
                 	//data.put( "columnType", column.getParentType() );
                 	data.put( "data", cellData );
                 	//System.out.println( "parent: " + column.getParentTable() + "." + column.getParentColumn() );
-           			Dispatcher.forwardEvent( AppEvents.OpenParentFKData, parents.get(0) );
+           			Dispatcher.forwardEvent( AppEvents.OpenParentFKData, data );
                 }
       			formBinding.bind( rowData );
             }
