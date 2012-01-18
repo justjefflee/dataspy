@@ -236,18 +236,17 @@ public class TablePanel extends Window {
             	try {
                 TreeGridEvent ge = (TreeGridEvent)be;
                 CellSelection cs = sm.getSelectCell();
-    			System.out.println( "double click " + cs.row + " " + cs.cell );
     			
            		ModelData rowData = ge.getModel();
            		//ModelData rowData = treeStore.getAt( cs.row );
            		Table t = (Table) rowData.get("Table");
+    			System.out.println( "double click " + cs.row + " " + cs.cell + " " + t.getName() );
           		TableColumn column = t.getColumns().get( cs.cell );
            		String cellData = rowData.get( "c"+cs.cell );
                 System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  cellData + " parents: " + column.getParents().size() );
                 
                 List<TableColumn> columns = column.getParents();
-                if (columns.size() == 0)
-                	columns = column.getChildren();
+                columns.addAll( column.getChildren() );
                 
                 if (columns.size() > 0) {
                 	String key = table.getName()+cs.row+""+cs.cell;
@@ -264,7 +263,7 @@ public class TablePanel extends Window {
         				Map<String,Object> data = new HashMap<String,Object>();
                 		data.put( "parent", c );
                 		data.put( "data", cellData );
-                		addData( column, rowData, cellData );
+                		addData( c, rowData, cellData );
         			}
                 }
             	} catch (Exception e) {
