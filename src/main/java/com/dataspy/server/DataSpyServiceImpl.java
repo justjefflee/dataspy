@@ -1,5 +1,8 @@
 package com.dataspy.server;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -9,6 +12,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 
 import net.sourceforge.schemaspy.Config;
@@ -30,23 +34,25 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
     private static Map<String,com.dataspy.shared.model.Table> tableMap = new TreeMap<String,com.dataspy.shared.model.Table>();
     private static Map<String,com.dataspy.shared.model.TableColumn> tableColumnMap = new HashMap<String,com.dataspy.shared.model.TableColumn>();
     
-	static {
-		initDatabase();
-	}
-	
-    public static void main(String[] argv) {
-    	try {
-    		DataSpyService s = new DataSpyServiceImpl();
-    		//s.init();
-    	
-        } catch (Exception exc) {
-            exc.printStackTrace();
-        }
-    }
-
 	static void initDatabase () {
+		String configFilePath = System.getenv( "DATASPY_CONFIG" );
+		System.out.println( "DATASPY_COONFIG: " + configFilePath );
+		Properties props = new Properties();
+		try {
+			
+			props.load( new FileInputStream( configFilePath ) );
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		MySchemaAnalyzer analyzer = new MySchemaAnalyzer();
-        String cmdLine = "-i \"T_.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
+		String cmdLine = props.getProperty( "dataspy.params" );
+        //String cmdLine = "-i \"T_.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
         //String cmdLine = "-i \"t_.*\" -t mysql -host localhost -port 3306 -noschema -db newdemo -u legato -p legato -o \\output";
         try {
         	String[] argv = cmdLine.split( " " );

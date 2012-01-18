@@ -1,1 +1,20 @@
-dataspy is a database navigator tool based on schemaspy
+DataSpy is a database navigator tool that uses schemaspy to retrieve all the database meta info.
+
+Similar to what schemaspy does to database meta data, DataSpy is aimed to do the same thing for the actual data.
+
+To set up DataSpy
+
+1. Because dataspy uses schemaspy, you'd need to install Graphviz (http://www.graphviz.org/) on your system
+
+2. create a configuration file similar to dataspy.properties 
+
+    #sample params to access sqlserver
+    dataspy.params=-i "*" -t mssql-jtds -host localhost -port 1433 -noschema -db mydb -u jeff -p abc -o \output
+
+    #sample params to access mysql
+    #dataspy.params=-i "*" -t mysql -host localhost -port 3306 -noschema -db mydb -u jeff -p abc -o \output
+
+3. create an enviroment variable DATASPY_CONFIG to point to the path where dataspy.properties is located
+
+4. copy dataspy.war to a java web container such as Tomcat 6 or above
+
