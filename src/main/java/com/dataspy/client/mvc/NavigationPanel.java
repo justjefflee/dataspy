@@ -45,16 +45,16 @@ public class NavigationPanel extends ContentPanel {
 	}
 	
 	private Folder getTreeModel () {
-   		Folder root = new Folder( "database" );
+   		Folder root = new Folder( Util.getDatabase().getName() );
    		Folder tables = new Folder( "Tables" );
    		root.add( tables );
-   		if (Util.getTableMap() != null) {
-   			for (Table table : Util.getTableMap().values()) {
+   		if (Util.getDatabase() != null) {
+   			for (Table table : Util.getDatabase().getTableMap().values()) {
    				TableNode tableNode = new TableNode( table.getName() );
    				tables.add( tableNode );
    			}
    		} else {
-   			System.out.println( "table map is null" );
+   			System.out.println( "database is null" );
    		}
    		return root;
 	}

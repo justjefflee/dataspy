@@ -50,25 +50,26 @@ import com.extjs.gxt.ui.client.widget.treegrid.TreeGridCellRenderer;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public class TablePanel extends Window {
-   	private ListStore<RowData> store = new ListStore<RowData>();
    	private FormBinding formBinding;
    	private TreeStore<ModelData> treeStore = new TreeStore<ModelData>();
    	private Table table;
 	private TreeGrid<ModelData> tree;
+	private TextArea textArea;
 
 	public TablePanel (final Table table) {
 		try {
 		this.table = table;
 		//setLayout(new RowLayout(Orientation.HORIZONTAL)); 
 		setLayout( new FitLayout() );
-		setHeading( table.getName() );
+		setHeaderVisible( false );
+		//setHeading( table.getName() );
 		
 		ToolBar toolbar = new ToolBar();
 		Button clearButton = new Button( "Clear" );
 		clearButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
 			@Override
 			public void componentSelected(ButtonEvent ce) {
-				store.removeAll();
+				treeStore.removeAll();
 			}
 		});
 		toolbar.add( clearButton );
@@ -91,25 +92,38 @@ public class TablePanel extends Window {
 		});
 		toolbar.add( collapseButton );
 		
+		Button executeButton = new Button( "Execute" );
+		toolbar.add( executeButton );
+		
 		setTopComponent( toolbar );
 		ContentPanel cp = new ContentPanel();
 		
 		//gridDesign( cp );
 		treeGridDesign( cp );
     	
-		TabPanel tabPanel = new TabPanel();
-		TabItem tabItem = new TabItem( "Result" );
-		tabItem.setLayout( new FitLayout() );
-		tabItem.add( cp );
-		tabPanel.add( tabItem );
+		final TabPanel tabPanel = new TabPanel();
+		final TabItem resultTabItem = new TabItem( "Result" );
+		resultTabItem.setLayout( new FitLayout() );
+		resultTabItem.add( cp );
+		tabPanel.add( resultTabItem );
 		
-		tabItem = new TabItem( "SQL" );
-		tabItem.setLayout( new FitLayout() );
-		tabItem.add( new TextArea() );
-		tabPanel.add( tabItem );
+		final TabItem sqlTabItem = new TabItem( "SQL" );
+		sqlTabItem.setLayout( new FitLayout() );
+		textArea = new TextArea();
+		sqlTabItem.add( textArea );
+		tabPanel.add( sqlTabItem );
 		
 		add( tabPanel );
     	setSize( 800, 600 );
+    	
+		executeButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				executeSql();
+				tabPanel.setSelection( resultTabItem );
+			}
+		});
+		
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -122,6 +136,7 @@ public class TablePanel extends Window {
     	//cp.add( createFormPanel() );
 	}
 	
+	/*
 	private void gridDesign (ContentPanel cp) {
 		//cp.setLayout( new FitLayout() );
 		BorderLayout layout = new BorderLayout();
@@ -145,6 +160,25 @@ public class TablePanel extends Window {
 		BorderLayoutData centerData = new BorderLayoutData(LayoutRegion.CENTER);
 		centerData.setMargins(new Margins(0));
     	cp.add( fp, centerData );
+	}
+	*/
+	
+	public void executeSql () {
+		Util.getDataSpyService().execute( textArea.getValue(), new AsyncCallback<List<RowData>>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				Dispatcher.forwardEvent( AppEvents.Error, caught );
+			}
+			@Override
+			public void onSuccess(List<RowData> data) {
+				try {
+				treeStore.insert( toFolder( data ), 0, true );
+				tree.setExpanded( treeStore.getRootItems().get(0), true, true );
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 	
 	public void addData (final TableColumn parentColumn, final ModelData parent, String cellData) {
@@ -173,6 +207,35 @@ public class TablePanel extends Window {
 				tree.setExpanded( m, true, true );
 			}
 		}).delay( 100 );
+	}
+	
+	private Folder toFolder (List<RowData> data) {
+    	Folder f = new Folder();
+    	int i = 0;
+    	RowData metaData = data.get(0);
+    	for (String key : metaData.getPropertyNames()) {
+    		System.out.println( "toFolder " + key + " " + metaData.get(key) );
+    		f.set( key, metaData.get( key ) );
+    		i++;
+    		if (i == 20)
+    			break;
+    	}
+    	data.remove( 0 );
+    	for (RowData rd : data) {
+    		Folder c = new Folder();
+    		c.set( "metaData", metaData );
+    		f.add( c );
+    		for (i = 0; metaData.get( "c"+i ) != null; i++) {
+   				String key = (String) metaData.get("c"+i);
+   				key = key.replace( ".", " " );
+   				Object o = rd.get( key );
+   				//System.out.println( "toFolder " + key + " " + o );
+   				c.set( "c"+i, o );
+    			if (i == 20)
+    				break;
+    		}
+    	}
+    	return f;
 	}
 	
 	private Folder toFolder (Table table, List<RowData> data) {
@@ -238,23 +301,43 @@ public class TablePanel extends Window {
                 CellSelection cs = sm.getSelectCell();
     			
            		ModelData rowData = ge.getModel();
+       			String cellData = rowData.get( "c"+cs.cell );
+       			
+                List<TableColumn> columns = new ArrayList<TableColumn>();
+                
            		//ModelData rowData = treeStore.getAt( cs.row );
            		Table t = (Table) rowData.get("Table");
-    			System.out.println( "double click " + cs.row + " " + cs.cell + " " + t.getName() );
-          		TableColumn column = t.getColumns().get( cs.cell );
-           		String cellData = rowData.get( "c"+cs.cell );
-                System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  cellData + " parents: " + column.getParents().size() );
+           		if (t != null) {
+           			TableColumn column = t.getColumns().get( cs.cell );
+           			System.out.println( "double click " + cs.row + " " + cs.cell + " " + t.getName() );
+           			System.out.println( "cell selected: " + cs.row + " " + cs.cell + " value: " +  cellData + " parents: " + column.getParents().size() );
                 
-                List<TableColumn> columns = column.getParents();
-                columns.addAll( column.getChildren() );
+           			columns.addAll( column.getParents() );
+           			columns.addAll( column.getChildren() );
+           		} else {
+           			RowData metaData = (RowData) rowData.get( "metaData" );
+           			String key = metaData.get( "c"+cs.cell );
+           			String[] s = key.split( "\\." );
+           			String tableName = s[0];
+           			String columnName = s[1];
+           			System.out.println( "double click: " + tableName + " " + columnName );
+           			t = Util.getDatabase().getTableMap().get( tableName );
+           			for (TableColumn column : t.getColumns()) {
+           				if (column.getName().equals( columnName )) {
+           					columns.addAll( column.getParents() );
+           					columns.addAll( column.getChildren() );
+           					break;
+           				}
+           			}
+           		}
                 
                 if (columns.size() > 0) {
                 	String key = table.getName()+cs.row+""+cs.cell;
-                	rowData.set( column.getName()+"clicked", "" );
+                	//rowData.set( column.getName()+"clicked", "" );
                 	
         			Record rec = treeStore.getRecord( rowData );
         			rec.beginEdit();
-        			rec.set( column.getName(), cellData );
+        			//rec.set( column.getName(), cellData );
         			rec.set( key, "" );
         			rec.endEdit();
         			rec.commit(true);
@@ -274,6 +357,7 @@ public class TablePanel extends Window {
 		return tree;
 	}
 	
+	/*
 	private Grid<RowData> createGrid (final Table table) {
 		GridCellRenderer<RowData> renderer = new GridCellRenderer<RowData>() {
 			@Override
@@ -351,4 +435,5 @@ public class TablePanel extends Window {
         
 		return grid;
 	}
+	*/
 }

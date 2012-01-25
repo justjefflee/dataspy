@@ -68,7 +68,7 @@ public class AppController extends Controller {
 	}
 
 	private void openTable (final String tableName) {
-		appView.openTable( Util.getTableMap().get( tableName ) );
+		appView.openTable( Util.getDatabase().getTableMap().get( tableName ) );
 		DataSpyServiceAsync dataSpyService = (DataSpyServiceAsync) Registry.get( DataSpy.DATASPY_SERVICE );
 		dataSpyService.getSampleData( tableName, new AsyncCallback<List<RowData>>() {
 			@Override

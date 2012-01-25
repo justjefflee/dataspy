@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -127,10 +128,13 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
         }
 	}
 	
-    public Map<String,com.dataspy.shared.model.Table> getTableMap () {
-    	return tableMap;
-    }
-    
+	public com.dataspy.shared.model.Database getDatabase () {
+		com.dataspy.shared.model.Database db = new com.dataspy.shared.model.Database();
+		db.setName( database.getName() );
+		db.setTableMap( tableMap );
+		return db;
+	}
+	
 	public List<RowData> getData(String tableName, String columnName, String columnType, String data) {
 		com.dataspy.shared.model.Table table = tableMap.get(tableName);
 		List<RowData> result = new ArrayList<RowData>();
@@ -146,6 +150,9 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 			for (int i = 0; i < 10 && rs.next(); i++) {
 				RowData rowData = new RowData();
 				for (int j = 1; j <= rsmd.getColumnCount(); j++) {
+					if (rsmd.getColumnType(j) == Types.BLOB ||
+						rsmd.getColumnType(j) == Types.LONGVARBINARY)
+						continue;
 					rowData.set(rsmd.getColumnName(j), rs.getString(j));
 				}
 				result.add(rowData);
@@ -157,6 +164,46 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 			try { ps.close(); } catch (Exception ex) {}
 		}
 		return result;
+	}
+	
+	public List<RowData> execute (String sql) {
+		List<RowData> result = new ArrayList<RowData>();
+      	PreparedStatement ps = null;
+      	ResultSet rs = null;
+      	
+      	try {
+       		ps = database.getConnection().prepareStatement( sql );
+       		rs = ps.executeQuery();
+       		
+  			ResultSetMetaData rsmd = rs.getMetaData();
+       		{
+   				RowData rowData = new RowData();
+   				for (int j = 1; j <= rsmd.getColumnCount(); j++) {
+   					System.out.println( "execute " + rsmd.getTableName(j) + "." + rsmd.getColumnName( j ) );
+   					rowData.set( "c"+(j-1), rsmd.getTableName(j)+"."+rsmd.getColumnName(j) );
+   				}
+   				result.add( rowData );
+       		}
+       		for (int i = 0; i < 10 && rs.next(); i++) {
+       			RowData rowData = new RowData();
+       			for (int j = 1; j <= rsmd.getColumnCount(); j++) {
+					String key = rsmd.getTableName(j)+" "+rsmd.getColumnName(j);
+					if (rsmd.getColumnType(j) == Types.BLOB ||
+						rsmd.getColumnType(j) == Types.LONGVARBINARY) {
+						rowData.set( key, "" );
+					} else {
+						System.out.println( "set " + key + " " + rs.getString(j) );
+						rowData.set( key, rs.getString( j ) );
+					}
+       			}
+       			result.add( rowData );
+       		}
+       		rs.close();
+       		ps.close();
+       	} catch (Exception e) {
+       		e.printStackTrace();
+       	}
+       	return result;
 	}
 	
 	public List<RowData> getSampleData (String tableName) {
@@ -174,6 +221,9 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
        		for (int i = 0; i < 10 && rs.next(); i++) {
        			RowData rowData = new RowData();
        			for (int j = 1; j <= rsmd.getColumnCount(); j++) {
+					if (rsmd.getColumnType(j) == Types.BLOB ||
+						rsmd.getColumnType(j) == Types.LONGVARBINARY)
+						continue;
        				rowData.set( rsmd.getColumnName(j), rs.getString( j ) );
        			}
        			result.add( rowData );
@@ -193,25 +243,5 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 	    }
 	}
 
-    public List<FileModel> getFolderChildren(FileModel fileModel) {
-    	System.out.println( "getFolderChildren " + fileModel );
-    	List<FileModel> result = new ArrayList<FileModel>();
-    	if (fileModel == null) {
-    		result.add( new FolderModel( database.getName(), "/", "root" ) );
-    		
-    	} else if ("/".equals(fileModel.getPath())) {
-   			result.add( new FolderModel( "Tables", "/tables", "tables" ) );
-   			
-    	} else if ("/tables".equals(fileModel.getPath())) {
-    		List<Table> tables = new ArrayList<Table>();
-    		tables.addAll( database.getTables() );
-    		Collections.sort( tables, new TableComparable() );
-    		
-            for (Table table : tables) {
-            	result.add( new FileModel( table.getName(), "table", "table" ) );
-            }
-    	}
-    	return result;
-    }
 }
 	

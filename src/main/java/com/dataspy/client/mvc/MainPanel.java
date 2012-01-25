@@ -6,24 +6,27 @@ import java.util.Map;
 
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
-import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.event.WindowEvent;
 import com.extjs.gxt.ui.client.event.WindowListener;
-import com.extjs.gxt.ui.client.widget.ContentPanel;
-import com.extjs.gxt.ui.client.widget.layout.FlowLayout;
+import com.extjs.gxt.ui.client.widget.TabItem;
+import com.extjs.gxt.ui.client.widget.TabPanel;
+import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.menu.Menu;
 import com.extjs.gxt.ui.client.widget.menu.MenuItem;
+import com.google.gwt.user.client.ui.Widget;
 
-public class MainPanel extends ContentPanel {
+public class MainPanel extends TabPanel {
 	private Map<String,TablePanel> tablePanelMap = new HashMap<String,TablePanel>();
 
 	public MainPanel() {
+		/*
 		setHeading( "Workspace");
 		setLayout( new FlowLayout() );
 		setScrollMode( Scroll.AUTO );
 		setContextMenu( createPanelContextMenu() );
+		*/
     }
 
 	public void addData (String tableName, List<RowData> data) {
@@ -51,10 +54,19 @@ public class MainPanel extends ContentPanel {
 							}
 						});
 				tablePanelMap.put( table.getName(), tp );
-	    		add( tp );
-	    		layout();
+	    		//add( tp );
+	    		//layout();
 			}
-			tp.show();
+			//tp.show();
+			
+			TabItem tabItem = new TabItem( table.getName() );
+			tabItem.setClosable( true );
+			tabItem.setLayout(new FitLayout());
+			tabItem.add( (Widget) tp );
+			//tabItem.setToolTip( tabName );
+			add( tabItem );
+			setSelection( tabItem );
+
 	    
 		} catch (Exception e) {
 			e.printStackTrace();
