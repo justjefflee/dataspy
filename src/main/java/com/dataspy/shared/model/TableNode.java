@@ -8,16 +8,28 @@ public class TableNode extends BaseTreeModel {
 		set("type", "table" );
 	}
 
-	public TableNode(String name) {
-		set("name", name);
+	public TableNode(Database database, Table table) {
+		set( "database", database );
+		set("table", table);
 		set("type", "table" );
+		set( "name", table.getName() );
 	}
 
-	public String getName() {
-		return (String) get("name");
+	public Database getDatabase() {
+		return (Database) get( "database" );
 	}
+	
+	public Table getTable() {
+		return (Table) get("table");
+	}
+	
+	/*
+	public String getName () {
+		return getTable().getName();
+	}
+	*/
 
 	public String toString() {
-		return getName();
+		return getDatabase().getName() + " " + getTable().getName();
 	}
 }

@@ -1,5 +1,7 @@
 package com.dataspy.client;
 
+import java.util.List;
+
 import com.dataspy.client.mvc.AppController;
 import com.dataspy.shared.model.Database;
 import com.extjs.gxt.ui.client.GXT;
@@ -25,15 +27,15 @@ public class DataSpy implements EntryPoint {
 		Registry.register(DATASPY_SERVICE, dataSpyService);
 		
 		System.out.println( "DataSpy: getting database info .." );
-		dataSpyService.getDatabase( new AsyncCallback<Database>() {
+		dataSpyService.getDatabases( new AsyncCallback<List<Database>>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
 			}
 			@Override
-			public void onSuccess(Database database) {
-				System.out.println( "got database " + database.getName() );
-				Registry.register( "database", database );
+			public void onSuccess(List<Database> databases) {
+				System.out.println( "got database " + databases.size() );
+				Registry.register( "databases", databases );
 				Dispatcher dispatcher = Dispatcher.get();
 				dispatcher.addController(new AppController());
 				dispatcher.dispatch( AppEvents.Init );

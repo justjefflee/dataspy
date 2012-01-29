@@ -1,5 +1,7 @@
 package com.dataspy.client.mvc;
 
+import java.util.List;
+
 import com.dataspy.client.DataSpy;
 import com.dataspy.client.DataSpyServiceAsync;
 import com.dataspy.shared.model.Database;
@@ -11,8 +13,8 @@ public class Util {
 		return (DataSpyServiceAsync) Registry.get(DataSpy.DATASPY_SERVICE);
 	}
 	
-    public static Database getDatabase () {
-    	return (Database) Registry.get( "database" );
+    public static List<Database> getDatabases () {
+    	return (List<Database>) Registry.get( "databases" );
     }
 
 }

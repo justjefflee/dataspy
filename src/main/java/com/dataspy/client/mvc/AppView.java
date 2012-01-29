@@ -3,6 +3,7 @@ package com.dataspy.client.mvc;
 import java.util.List;
 
 import com.dataspy.client.AppEvents;
+import com.dataspy.shared.model.Database;
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.Style.LayoutRegion;
@@ -47,12 +48,16 @@ public class AppView extends View {
 		RootPanel.get().add( viewport );
 	}
 	
-	public void addData (String tableName, List<RowData> data) {
-		mainPanel.addData( tableName, data );
+	public void addData (Database database, Table table, List<RowData> data) {
+		mainPanel.addData( database, table, data );
 	}
 	
-	public void openTable (Table table) {
-		mainPanel.openTable( table );
+	public void openTable (Database database, Table table) {
+		mainPanel.openTable( database, table );
+	}
+
+	public void openQuery (Database database) {
+		mainPanel.openQuery( database );
 	}
 
 	protected void handleEvent(AppEvent event) {

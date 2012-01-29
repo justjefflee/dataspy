@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -25,40 +24,53 @@ import net.sourceforge.schemaspy.model.Table;
 import net.sourceforge.schemaspy.model.TableColumn;
 
 import com.dataspy.client.DataSpyService;
-import com.dataspy.shared.model.FileModel;
-import com.dataspy.shared.model.FolderModel;
 import com.dataspy.shared.model.RowData;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyService {
-    private static Database database;
-    private static Map<String,com.dataspy.shared.model.Table> tableMap = new TreeMap<String,com.dataspy.shared.model.Table>();
-    private static Map<String,com.dataspy.shared.model.TableColumn> tableColumnMap = new HashMap<String,com.dataspy.shared.model.TableColumn>();
+	//private static com.dataspy.shared.model.Database db;
+    //private static Database database;
+    private static List<DbInfo> dbInfos = new ArrayList<DbInfo>();
+    
+    static class DbInfo {
+    	com.dataspy.shared.model.Database db;
+    	Database database;
+    	
+    	public DbInfo (Database database, com.dataspy.shared.model.Database db) {
+    		this.database = database;
+    		this.db = db;
+    	}
+    }
     
 	static void initDatabase () {
 		String configFilePath = System.getenv( "DATASPY_CONFIG" );
 		System.out.println( "DATASPY_COONFIG: " + configFilePath );
 		Properties props = new Properties();
 		try {
-			
 			props.load( new FileInputStream( configFilePath ) );
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
+		for (int i = 1; ; i++) {
+			String cmdLine = props.getProperty( "dataspy.db." + i );
+			if (cmdLine == null)
+				break;
+			dbInfos.add( initDatabase( cmdLine ) );
+		}
+	}
+	
+	static DbInfo initDatabase (String cmdLine) {
+		Map<String,com.dataspy.shared.model.Table> tableMap = new TreeMap<String,com.dataspy.shared.model.Table>();
+		Map<String,com.dataspy.shared.model.TableColumn> tableColumnMap = new HashMap<String,com.dataspy.shared.model.TableColumn>();
 		MySchemaAnalyzer analyzer = new MySchemaAnalyzer();
-		String cmdLine = props.getProperty( "dataspy.params" );
-        //String cmdLine = "-i \"T_.*\" -t mssql-jtds -host localhost -port 1433 -noschema -db legato2 -u legato -p legato -o \\output";
-        //String cmdLine = "-i \"t_.*\" -t mysql -host localhost -port 3306 -noschema -db newdemo -u legato -p legato -o \\output";
         try {
         	String[] argv = cmdLine.split( " " );
             Config config = new Config(argv);
-            database = analyzer.analyze( config );
+            Database database = analyzer.analyze( config );
             for (Table table : database.getTables()) {
             	com.dataspy.shared.model.Table t = new com.dataspy.shared.model.Table();
             	t.setName( table.getName() );
@@ -114,6 +126,11 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
             	}
             }
             
+            com.dataspy.shared.model.Database db = new com.dataspy.shared.model.Database();
+            db.setName( database.getName() );
+            db.setTableMap( tableMap );
+            return new DbInfo( database, db );
+            
         } catch (InvalidConfigurationException badConfig) {
             System.err.println();
             if (badConfig.getParamName() != null)
@@ -126,24 +143,27 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
         } catch (Exception exc) {
             exc.printStackTrace();
         }
+        return null;
 	}
 	
-	public com.dataspy.shared.model.Database getDatabase () {
-		com.dataspy.shared.model.Database db = new com.dataspy.shared.model.Database();
-		db.setName( database.getName() );
-		db.setTableMap( tableMap );
-		return db;
+	public List<com.dataspy.shared.model.Database> getDatabases () {
+		List<com.dataspy.shared.model.Database> result =
+			new ArrayList<com.dataspy.shared.model.Database>();
+		for (DbInfo dbInfo : dbInfos) {
+			result.add( dbInfo.db );
+		}
+		return result;
 	}
 	
-	public List<RowData> getData(String tableName, String columnName, String columnType, String data) {
-		com.dataspy.shared.model.Table table = tableMap.get(tableName);
+	public List<RowData> getData(String databaseName, String tableName, String columnName, String columnType, String data) {
+		com.dataspy.shared.model.Table table = getDbInfo( databaseName ).db.getTableMap().get(tableName);
 		List<RowData> result = new ArrayList<RowData>();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
 			String sql = "select * from " + table.getName() + " where " + columnName + " = ?";
 			System.out.println( "getData " + sql );
-			ps = database.getConnection().prepareStatement( sql );
+			ps = getDbInfo( databaseName ).database.getConnection().prepareStatement( sql );
 			ps.setObject( 1, data );
 			rs = ps.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -166,13 +186,13 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 		return result;
 	}
 	
-	public List<RowData> execute (String sql) {
+	public List<RowData> execute (String databaseName, String sql) {
 		List<RowData> result = new ArrayList<RowData>();
       	PreparedStatement ps = null;
       	ResultSet rs = null;
       	
       	try {
-       		ps = database.getConnection().prepareStatement( sql );
+       		ps = getDbInfo( databaseName ).database.getConnection().prepareStatement( sql );
        		rs = ps.executeQuery();
        		
   			ResultSetMetaData rsmd = rs.getMetaData();
@@ -206,13 +226,13 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
        	return result;
 	}
 	
-	public List<RowData> getSampleData (String tableName) {
-		com.dataspy.shared.model.Table table = tableMap.get( tableName );
+	public List<RowData> getSampleData (String databaseName, String tableName) {
+		com.dataspy.shared.model.Table table = getDbInfo( databaseName ).db.getTableMap().get( tableName );
 		List<RowData> result = new ArrayList<RowData>();
       	PreparedStatement ps = null;
       	ResultSet rs = null;
       	try {
-       		ps = database.getConnection().prepareStatement( "select * from " + table.getName() );
+       		ps = getDbInfo( databaseName ).database.getConnection().prepareStatement( "select * from " + table.getName() );
        		rs = ps.executeQuery();
        		ResultSetMetaData rsmd = rs.getMetaData();
        		//for (int i = 1; i <= rsmd.getColumnCount(); i++) {
@@ -234,6 +254,14 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
        		e.printStackTrace();
        	}
        	return result;
+	}
+	
+	public DbInfo getDbInfo (String databaseName) {
+		for (DbInfo dbInfo : dbInfos) {
+			if (dbInfo.database.getName().equals( databaseName ))
+				return dbInfo;
+		}
+		return null;
 	}
 	
 	public class TableComparable implements Comparator<Table>{

@@ -1,20 +1,25 @@
 package com.dataspy.client.mvc;
 
 import com.dataspy.client.AppEvents;
+import com.dataspy.shared.model.Database;
 import com.dataspy.shared.model.Folder;
 import com.dataspy.shared.model.Table;
+import com.dataspy.shared.model.TableColumn;
 import com.dataspy.shared.model.TableNode;
 import com.extjs.gxt.ui.client.data.ModelData;
 import com.extjs.gxt.ui.client.event.BaseEvent;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.Listener;
+import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.store.TreeStore;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
+import com.extjs.gxt.ui.client.widget.menu.Menu;
+import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.extjs.gxt.ui.client.widget.treepanel.TreePanel;
 
@@ -35,9 +40,7 @@ public class NavigationPanel extends ContentPanel {
 				//tree.collapseAll();
 			}
 		});
-		
 		toolbar.add( expandButton );
-	    
 		setTopComponent( toolbar );
 
 		tree = createTree();
@@ -45,16 +48,24 @@ public class NavigationPanel extends ContentPanel {
 	}
 	
 	private Folder getTreeModel () {
-   		Folder root = new Folder( Util.getDatabase().getName() );
-   		Folder tables = new Folder( "Tables" );
-   		root.add( tables );
-   		if (Util.getDatabase() != null) {
-   			for (Table table : Util.getDatabase().getTableMap().values()) {
-   				TableNode tableNode = new TableNode( table.getName() );
-   				tables.add( tableNode );
-   			}
-   		} else {
-   			System.out.println( "database is null" );
+   		Folder root = new Folder( "Databases" );
+   		for (Database database : Util.getDatabases()) {
+   			Folder dbroot = new Folder( database.getName() );
+   			dbroot.set( "database", database );
+   			root.add( dbroot );
+   			Folder tables = new Folder( "Tables" );
+   			tables.set( "database", database );
+   			dbroot.add( tables );
+			for (Table table : database.getTableMap().values()) {
+				TableNode tableNode = new TableNode( database, table );
+				tables.add( tableNode );
+				Folder columns = new Folder( "Columns" );
+				tableNode.add( columns );
+				for (TableColumn tableColumn : table.getColumns()) {
+					Folder column = new Folder( tableColumn.getName() + " (" + tableColumn.getType() + " " + tableColumn.getLength() + ")" );
+					columns.add( column );
+				}
+			}
    		}
    		return root;
 	}
@@ -74,10 +85,39 @@ public class NavigationPanel extends ContentPanel {
             public void handleEvent(BaseEvent be) {
           		ModelData m =  tree.getSelectionModel().getSelectedItem();
                	if ("table".equals(m.get( "type" )))
-               		Dispatcher.forwardEvent( AppEvents.OpenTable, m.get("name") );
+               		Dispatcher.forwardEvent( AppEvents.OpenTable, new Object[] { m.get("database"), m.get("table") } );
    			}
        	});
 	     
+		Menu contextMenu = new Menu();
+		final MenuItem newQueryMenuItem = new MenuItem( "New Query" );
+		newQueryMenuItem.addSelectionListener(new SelectionListener<MenuEvent>() {
+			@Override
+			public void componentSelected(MenuEvent ce) {
+                ModelData m = tree.getSelectionModel().getSelectedItem();
+           		Dispatcher.forwardEvent( AppEvents.NewQuery, new Object[] { m.get("database") } );
+			}
+		});
+
+		contextMenu.add( newQueryMenuItem );
+		
+		contextMenu.addListener( Events.BeforeShow,
+				new Listener<MenuEvent>() {
+					@Override
+					public void handleEvent(MenuEvent be) {
+						ModelData m = tree.getSelectionModel().getSelectedItem();
+						if (m == null)
+							return;
+						if (m.get( "database" ) != null)
+							newQueryMenuItem.show();
+						else
+							newQueryMenuItem.hide();
+					}
+		});
+
+
+		
+		tree.setContextMenu( contextMenu );
 		return tree;
 	}
 }

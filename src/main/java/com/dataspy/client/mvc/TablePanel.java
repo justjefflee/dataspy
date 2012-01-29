@@ -6,27 +6,24 @@ import java.util.List;
 import java.util.Map;
 
 import com.dataspy.client.AppEvents;
+import com.dataspy.shared.model.Database;
 import com.dataspy.shared.model.Folder;
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.dataspy.shared.model.TableColumn;
-import com.extjs.gxt.ui.client.Style.LayoutRegion;
 import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.binding.FormBinding;
 import com.extjs.gxt.ui.client.data.ModelData;
 import com.extjs.gxt.ui.client.event.BaseEvent;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
-import com.extjs.gxt.ui.client.event.GridEvent;
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.event.TreeGridEvent;
 import com.extjs.gxt.ui.client.mvc.Dispatcher;
-import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.store.Record;
 import com.extjs.gxt.ui.client.store.TreeStore;
 import com.extjs.gxt.ui.client.util.DelayedTask;
-import com.extjs.gxt.ui.client.util.Margins;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.TabItem;
 import com.extjs.gxt.ui.client.widget.TabPanel;
@@ -39,10 +36,6 @@ import com.extjs.gxt.ui.client.widget.grid.CellSelectionModel;
 import com.extjs.gxt.ui.client.widget.grid.CellSelectionModel.CellSelection;
 import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
-import com.extjs.gxt.ui.client.widget.grid.Grid;
-import com.extjs.gxt.ui.client.widget.grid.GridCellRenderer;
-import com.extjs.gxt.ui.client.widget.layout.BorderLayout;
-import com.extjs.gxt.ui.client.widget.layout.BorderLayoutData;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.extjs.gxt.ui.client.widget.treegrid.TreeGrid;
@@ -55,9 +48,11 @@ public class TablePanel extends Window {
    	private Table table;
 	private TreeGrid<ModelData> tree;
 	private TextArea textArea;
+	private Database database;
 
-	public TablePanel (final Table table) {
+	public TablePanel (Database database, final Table table) {
 		try {
+		this.database = database;
 		this.table = table;
 		//setLayout(new RowLayout(Orientation.HORIZONTAL)); 
 		setLayout( new FitLayout() );
@@ -164,7 +159,7 @@ public class TablePanel extends Window {
 	*/
 	
 	public void executeSql () {
-		Util.getDataSpyService().execute( textArea.getValue(), new AsyncCallback<List<RowData>>() {
+		Util.getDataSpyService().execute( database.getName(), textArea.getValue(), new AsyncCallback<List<RowData>>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
@@ -183,7 +178,7 @@ public class TablePanel extends Window {
 	
 	public void addData (final TableColumn parentColumn, final ModelData parent, String cellData) {
 		System.out.println( "addData " + parentColumn.getTable().getName() + " " + parentColumn.getName() + " " + cellData );
-		Util.getDataSpyService().getData( parentColumn.getTable().getName(), parentColumn.getName(), parentColumn.getType(), cellData, new AsyncCallback<List<RowData>>() {
+		Util.getDataSpyService().getData( database.getName(), parentColumn.getTable().getName(), parentColumn.getName(), parentColumn.getType(), cellData, new AsyncCallback<List<RowData>>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
@@ -321,7 +316,7 @@ public class TablePanel extends Window {
            			String tableName = s[0];
            			String columnName = s[1];
            			System.out.println( "double click: " + tableName + " " + columnName );
-           			t = Util.getDatabase().getTableMap().get( tableName );
+           			t = database.getTableMap().get( tableName );
            			for (TableColumn column : t.getColumns()) {
            				if (column.getName().equals( columnName )) {
            					columns.addAll( column.getParents() );
