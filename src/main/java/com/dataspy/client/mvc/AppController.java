@@ -6,6 +6,7 @@ import com.dataspy.client.AppEvents;
 import com.dataspy.client.DataSpy;
 import com.dataspy.client.DataSpyServiceAsync;
 import com.dataspy.shared.model.Database;
+import com.dataspy.shared.model.DatabaseConfig;
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.Registry;
@@ -24,6 +25,8 @@ public class AppController extends Controller {
 		registerEventTypes(AppEvents.Error);
 		registerEventTypes(AppEvents.OpenTable);
 		registerEventTypes(AppEvents.NewQuery);
+		registerEventTypes(AppEvents.EditDatabase);
+		registerEventTypes(AppEvents.AddDatabase);
 	}
 
 	public void handleEvent(AppEvent event) {
@@ -40,6 +43,17 @@ public class AppController extends Controller {
 			
 		} else if (type == AppEvents.NewQuery) {
 			appView.openQuery( (Database) ((Object[])event.getData())[0] );
+			
+		} else if (type == AppEvents.EditDatabase) {
+			DatabaseConfig databaseConfig = (DatabaseConfig) ((Object[])event.getData())[0];
+			DatabaseConfigWindow w = new DatabaseConfigWindow();
+			w.setDatabaseConfig( databaseConfig );
+			w.show();
+			
+		} else if (type == AppEvents.AddDatabase) {
+			DatabaseConfigWindow w = new DatabaseConfigWindow();
+			w.setDatabaseConfig( new DatabaseConfig() );
+			w.show();
 		}
 	}
 	

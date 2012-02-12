@@ -2,6 +2,7 @@ package com.dataspy.server;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +16,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
+import org.hibernate.pretty.Formatter;
+
 import net.sourceforge.schemaspy.Config;
 import net.sourceforge.schemaspy.model.Database;
 import net.sourceforge.schemaspy.model.ForeignKeyConstraint;
@@ -22,15 +25,18 @@ import net.sourceforge.schemaspy.model.InvalidConfigurationException;
 import net.sourceforge.schemaspy.model.ProcessExecutionException;
 import net.sourceforge.schemaspy.model.Table;
 import net.sourceforge.schemaspy.model.TableColumn;
+import net.sourceforge.schemaspy.model.TableIndex;
 
 import com.dataspy.client.DataSpyService;
+import com.dataspy.shared.model.DataSpyException;
+import com.dataspy.shared.model.DatabaseConfig;
 import com.dataspy.shared.model.RowData;
+import com.dataspy.shared.model.Sql;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyService {
-	//private static com.dataspy.shared.model.Database db;
-    //private static Database database;
     private static List<DbInfo> dbInfos = new ArrayList<DbInfo>();
+    private static boolean dirty = false;
     
     static class DbInfo {
     	com.dataspy.shared.model.Database db;
@@ -42,7 +48,13 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
     	}
     }
     
-	static void initDatabase () {
+    static void saveProperties (Properties props) throws Exception {
+		String configFilePath = System.getenv( "DATASPY_CONFIG" );
+		props.store( new FileOutputStream( configFilePath ), "" );
+		dirty = true;
+    }
+    
+    static Properties getProperties () {
 		String configFilePath = System.getenv( "DATASPY_CONFIG" );
 		System.out.println( "DATASPY_COONFIG: " + configFilePath );
 		Properties props = new Properties();
@@ -54,21 +66,58 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		return props;
+    }
+		
+    static String getNextKey () {
+		Properties props = getProperties();
 		for (int i = 1; ; i++) {
-			String cmdLine = props.getProperty( "dataspy.db." + i );
+			String key = "dataspy.db." + i;
+			if (props.getProperty( key ) == null)
+				return "dataspy.db." + i;
+		}
+    }
+    
+    static String getNextSqlKey (String dbKey) {
+		Properties props = getProperties();
+		for (int i = 1; ; i++) {
+			String key = dbKey + ".sql." + i;
+			if (props.getProperty( key ) == null)
+				return dbKey + ".sql." + i;
+		}
+    }
+    
+	static void initDatabase () {
+		dbInfos.clear();
+		Properties props = getProperties();
+		for (int i = 1; ; i++) {
+			String key = "dataspy.db." + i;
+			String cmdLine = props.getProperty( key );
 			if (cmdLine == null)
 				break;
-			dbInfos.add( initDatabase( cmdLine ) );
+			
+            DatabaseConfig dbConfig = new DatabaseConfig();
+            dbConfig.setKey( key );
+            dbConfig.setParams( cmdLine );
+            
+            for (int j = 1; j < 100; j++) {
+            	String sqlKey = key + ".sql." + j;
+            	String sqlLine = props.getProperty( sqlKey );
+				if (sqlLine == null)
+					continue;
+				dbConfig.addSql( new Sql( sqlKey, sqlLine ) );
+            }
+			dbInfos.add( initDatabase( dbConfig ) );
 		}
+		dirty = false;
 	}
 	
-	static DbInfo initDatabase (String cmdLine) {
+	static DbInfo initDatabase (DatabaseConfig dbConfig) {
 		Map<String,com.dataspy.shared.model.Table> tableMap = new TreeMap<String,com.dataspy.shared.model.Table>();
 		Map<String,com.dataspy.shared.model.TableColumn> tableColumnMap = new HashMap<String,com.dataspy.shared.model.TableColumn>();
 		MySchemaAnalyzer analyzer = new MySchemaAnalyzer();
         try {
-        	String[] argv = cmdLine.split( " " );
+        	String[] argv = dbConfig.getParams().split( " " );
             Config config = new Config(argv);
             Database database = analyzer.analyze( config );
             for (Table table : database.getTables()) {
@@ -125,8 +174,27 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
             		i++;
             	}
             }
+            for (Table table : database.getTables()) {
+            	com.dataspy.shared.model.Table t = tableMap.get( table.getName() );
+            	List<com.dataspy.shared.model.TableIndex> indexes =
+            		new ArrayList<com.dataspy.shared.model.TableIndex>();
+            	t.setIndexes( indexes );
+            	for (TableIndex tableIndex : table.getIndexes()) {
+            		com.dataspy.shared.model.TableIndex ti = new com.dataspy.shared.model.TableIndex();
+            		indexes.add( ti );
+            		ti.setName( tableIndex.getName() );
+            		ti.setPrimary( tableIndex.isPrimaryKey() );
+            		ti.setUnique( tableIndex.isUnique() );
+            		List<com.dataspy.shared.model.TableColumn> columns = new ArrayList<com.dataspy.shared.model.TableColumn>();
+            		ti.setColumns(columns);
+            		for (TableColumn c : tableIndex.getColumns()) {
+            			columns.add( t.getColumn( c.getName() ) );
+            		}
+            	}
+            }
             
             com.dataspy.shared.model.Database db = new com.dataspy.shared.model.Database();
+            db.setDatabaseConfig( dbConfig );
             db.setName( database.getName() );
             db.setTableMap( tableMap );
             return new DbInfo( database, db );
@@ -146,7 +214,54 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
         return null;
 	}
 	
+	public void refresh () {
+		initDatabase();
+	}
+	
+	public void removeDatabaseSql (String dbKey, String key) throws DataSpyException {
+		try {
+			Properties props = getProperties();
+			props.remove( key );
+			saveProperties( props );
+		} catch (Exception e) {
+			throw new DataSpyException( e );
+		}
+	}
+	
+	public String formatSql (String sql) {
+		return new Formatter(sql).format();
+	}
+	
+	public Sql saveDatabaseSql (String dbKey, String key, String sql) throws DataSpyException {
+		try {
+			Properties props = getProperties();
+			if (key == null)
+				key = getNextSqlKey( dbKey );
+			props.setProperty( key, sql );
+			saveProperties( props );
+			return new Sql( key, sql );
+		} catch (Exception e) {
+			throw new DataSpyException( e );
+		}
+	}
+	
+	public void saveDatabaseParams (String key, String params) throws DataSpyException {
+		try {
+			Properties props = getProperties();
+			if (key == null)
+				key = getNextKey();
+			props.setProperty( key, params );
+			saveProperties( props );
+		} catch (Exception e) {
+			throw new DataSpyException( e );
+		}
+	}
+	
 	public List<com.dataspy.shared.model.Database> getDatabases () {
+		if (dirty) {
+			initDatabase();
+			dirty = false;
+		}
 		List<com.dataspy.shared.model.Database> result =
 			new ArrayList<com.dataspy.shared.model.Database>();
 		for (DbInfo dbInfo : dbInfos) {

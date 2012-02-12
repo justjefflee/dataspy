@@ -30,6 +30,7 @@ public class DataSpy implements EntryPoint {
 		dataSpyService.getDatabases( new AsyncCallback<List<Database>>() {
 			@Override
 			public void onFailure(Throwable caught) {
+				caught.printStackTrace();
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
 			}
 			@Override

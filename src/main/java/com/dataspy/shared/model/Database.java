@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 public class Database implements Serializable {
+	private DatabaseConfig databaseConfig;
 	private String name;
     private Map<String,com.dataspy.shared.model.Table> tableMap;
     
@@ -12,6 +13,12 @@ public class Database implements Serializable {
 	}
 	public void setName(String name) {
 		this.name = name;
+	}
+	public DatabaseConfig getDatabaseConfig() {
+		return databaseConfig;
+	}
+	public void setDatabaseConfig(DatabaseConfig databaseConfig) {
+		this.databaseConfig = databaseConfig;
 	}
 	public Map<String, com.dataspy.shared.model.Table> getTableMap() {
 		return tableMap;

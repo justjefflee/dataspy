@@ -8,6 +8,9 @@ public class AppEvents {
 
 	public static final EventType Error = new EventType();
 	
+	public static final EventType AddDatabase = new EventType();
+	public static final EventType EditDatabase = new EventType();
+	
 	public static final EventType NewQuery = new EventType();
 	
 	public static final EventType OpenTable = new EventType();
