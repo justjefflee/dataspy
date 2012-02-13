@@ -17,8 +17,8 @@ import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public class AppController extends Controller {
-
 	private AppView appView;
+	private ErrorMessageWindow errorMessageWindow = new ErrorMessageWindow();
 
 	public AppController() {
 		registerEventTypes(AppEvents.Init);
@@ -78,6 +78,9 @@ public class AppController extends Controller {
 
 	protected void onError(AppEvent ae) {
 		System.out.println("error: " + ae.<Object> getData());
+		errorMessageWindow.setThrowable( (Throwable) ae.getData() );
+		errorMessageWindow.show();
+
 	}
 
 	private void onInit(AppEvent event) {

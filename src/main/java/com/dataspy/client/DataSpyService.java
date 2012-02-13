@@ -17,7 +17,7 @@ public interface DataSpyService extends RemoteService {
 	
 	public List<RowData> getData(String databaseName, String tableName, String columnName, String columnType, String data);
 		
-	public List<RowData> execute (String databaseName, String sql);
+	public List<RowData> execute (String databaseName, String sql, List<String> params, List<String> data) throws DataSpyException;
 	
 	public void saveDatabaseParams (String key, String params) throws DataSpyException;
 	

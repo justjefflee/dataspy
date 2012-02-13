@@ -34,6 +34,8 @@ import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.extjs.gxt.ui.client.widget.treegrid.TreeGrid;
 import com.extjs.gxt.ui.client.widget.treegrid.TreeGridCellRenderer;
+import com.google.gwt.regexp.shared.MatchResult;
+import com.google.gwt.regexp.shared.RegExp;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public class ResultPanel extends ContentPanel {
@@ -43,7 +45,8 @@ public class ResultPanel extends ContentPanel {
    	private Table table;
 	private TreeGrid<ModelData> tree;
 	
-	public ResultPanel (TablePanel tablePanel, Database database) {
+	public ResultPanel (TablePanel tablePanel, Database database, Table table) {
+		this.table = table;
 		this.tablePanel = tablePanel;
 		this.database = database;
 		
@@ -92,10 +95,41 @@ public class ResultPanel extends ContentPanel {
 	}
 
 	public void executeSql () {
+		try {
 		final String sql = tablePanel.getSql();
 		if (sql == null)
 			return;
-		Util.getDataSpyService().execute( database.getName(), sql, new AsyncCallback<List<RowData>>() {
+		
+	    final List<String> matches = getMatches( sql, ":\\w*" );
+
+		if (matches.size() > 0) {
+		    GetParamsWindow w = new GetParamsWindow( matches ) {
+		    	@Override
+		    	public void execute (List<String> data) {
+		    		performExecute( sql, matches, data );
+		    	}
+		    };
+		    w.show();
+		} else {
+			performExecute( sql, null, null );
+		}
+		} catch (Exception e) {
+			e.printStackTrace();
+			Dispatcher.forwardEvent( AppEvents.Error, e );
+		}
+	}
+
+	private List<String> getMatches(String input, String pattern) {
+	    List<String> matches = new ArrayList<String>();
+	    RegExp regExp = RegExp.compile(pattern, "g");
+	    for (MatchResult matcher = regExp.exec(input); matcher != null; matcher = regExp.exec(input)) {
+	       matches.add(matcher.getGroup(0));
+	    }
+	    return matches;
+	}
+
+	private void performExecute (String sql, List<String> params, List<String> data) {
+		Util.getDataSpyService().execute( database.getName(), sql, params, data, new AsyncCallback<List<RowData>>() {
 			@Override
 			public void onFailure(Throwable caught) {
 				Dispatcher.forwardEvent( AppEvents.Error, caught );
@@ -103,10 +137,10 @@ public class ResultPanel extends ContentPanel {
 			@Override
 			public void onSuccess(List<RowData> data) {
 				try {
-				treeStore.insert( toFolder( data ), 0, true );
-				tree.setExpanded( treeStore.getRootItems().get(0), true, true );
+					treeStore.insert( toFolder( data ), 0, true );
+					tree.setExpanded( treeStore.getRootItems().get(0), true, true );
 				} catch (Exception e) {
-					e.printStackTrace();
+					Dispatcher.forwardEvent( AppEvents.Error, e );
 				}
 			}
 		});
@@ -137,7 +171,7 @@ public class ResultPanel extends ContentPanel {
 			public void handleEvent(BaseEvent be) {
 				tree.setExpanded( m, true, true );
 			}
-		}).delay( 100 );
+		}).delay( 200 );
 	}
 	
 	private Folder toFolder (List<RowData> data) {

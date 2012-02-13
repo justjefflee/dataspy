@@ -145,6 +145,7 @@ public class SqlPanel extends ContentPanel {
 				database.getDatabaseConfig().addSql( sql );
 				} catch (Exception e) {
 					e.printStackTrace();
+					Dispatcher.forwardEvent( AppEvents.Error, e );
 				}
 			}
 		});
@@ -166,6 +167,7 @@ public class SqlPanel extends ContentPanel {
 					textArea.setValue( null );
 				} catch (Exception e) {
 					e.printStackTrace();
+					Dispatcher.forwardEvent( AppEvents.Error, e );
 				}
 			}
 		});
@@ -183,6 +185,7 @@ public class SqlPanel extends ContentPanel {
 					textArea.setValue( formattedSql );
 				} catch (Exception e) {
 					e.printStackTrace();
+					Dispatcher.forwardEvent( AppEvents.Error, e );
 				}
 			}
 		});

@@ -2,11 +2,13 @@ package com.dataspy.client.mvc;
 
 import java.util.List;
 
+import com.dataspy.client.AppEvents;
 import com.dataspy.shared.model.Database;
 import com.dataspy.shared.model.RowData;
 import com.dataspy.shared.model.Table;
 import com.extjs.gxt.ui.client.binding.FormBinding;
 import com.extjs.gxt.ui.client.data.ModelData;
+import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.store.TreeStore;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.TabItem;
@@ -15,11 +17,11 @@ import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.treegrid.TreeGrid;
 
 public class TablePanel extends ContentPanel {
-   	private FormBinding formBinding;
-   	private TreeStore<ModelData> treeStore = new TreeStore<ModelData>();
-   	private Table table;
-	private TreeGrid<ModelData> tree;
-	private Database database;
+   	//private FormBinding formBinding;
+   	//private TreeStore<ModelData> treeStore = new TreeStore<ModelData>();
+   	//private Table table;
+	//private TreeGrid<ModelData> tree;
+	//private Database database;
 	private SqlPanel sqlPanel;
 	private ResultPanel resultPanel;
 	private TabPanel tabPanel;
@@ -27,8 +29,8 @@ public class TablePanel extends ContentPanel {
 
 	public TablePanel (Database database, final Table table) {
 		try {
-		this.database = database;
-		this.table = table;
+		//this.database = database;
+		//this.table = table;
 		setLayout( new FitLayout() );
 		setHeaderVisible( false );
 		
@@ -43,14 +45,17 @@ public class TablePanel extends ContentPanel {
 		
 		resultTabItem = new TabItem( "Result" );
 		resultTabItem.setLayout( new FitLayout() );
-		resultPanel = new ResultPanel( this, database );
+		resultPanel = new ResultPanel( this, database, table );
 		resultTabItem.add( resultPanel );
 		tabPanel.add( resultTabItem );
 		
 		add( tabPanel );
-    	//setSize( 800, 600 );
+		
+		if (table != null)
+			tabPanel.setSelection( resultTabItem );
 		
 		} catch (Exception e) {
+			Dispatcher.forwardEvent( AppEvents.Error, e );
 			e.printStackTrace();
 		}
 	}
@@ -65,7 +70,7 @@ public class TablePanel extends ContentPanel {
 			resultPanel.executeSql();
 			tabPanel.setSelection( resultTabItem );
 		} catch (Exception e) {
-			e.printStackTrace();
+			Dispatcher.forwardEvent( AppEvents.Error, e );
 		}
 	}
 	

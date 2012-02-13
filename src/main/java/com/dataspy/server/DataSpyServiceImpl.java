@@ -301,13 +301,27 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
 		return result;
 	}
 	
-	public List<RowData> execute (String databaseName, String sql) {
+	public List<RowData> execute (String databaseName, String sql, List<String> params, List<String> data) throws DataSpyException {
 		List<RowData> result = new ArrayList<RowData>();
       	PreparedStatement ps = null;
       	ResultSet rs = null;
       	
       	try {
+      		if (params != null && data != null) {
+      			for (String param : params) {
+      				sql = sql.replaceFirst( param, "?" );
+      			}
+      			System.out.println( sql );
+      		}
        		ps = getDbInfo( databaseName ).database.getConnection().prepareStatement( sql );
+       		
+      		if (params != null && data != null) {
+      			int index = 1;
+      			for (String d : data) {
+      				ps.setString( index, d );
+      				index++;
+      			}
+      		}
        		rs = ps.executeQuery();
        		
   			ResultSetMetaData rsmd = rs.getMetaData();
@@ -333,10 +347,12 @@ public class DataSpyServiceImpl extends RemoteServiceServlet implements DataSpyS
        			}
        			result.add( rowData );
        		}
-       		rs.close();
-       		ps.close();
        	} catch (Exception e) {
        		e.printStackTrace();
+       		throw new DataSpyException( e );
+       	} finally {
+       		try { rs.close(); } catch (Exception ex) {}
+       		try { ps.close(); } catch (Exception ex) {}
        	}
        	return result;
 	}
